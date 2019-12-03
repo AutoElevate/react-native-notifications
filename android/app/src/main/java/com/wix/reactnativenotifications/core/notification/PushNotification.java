@@ -6,6 +6,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
@@ -144,34 +146,29 @@ public class PushNotification implements IPushNotification {
     }
 
     protected Notification.Builder getNotificationBuilder(PendingIntent intent) {
-
-        String CHANNEL_ID = "channel_01";
-        String CHANNEL_NAME = "Channel Name";
-
         final Notification.Builder notification = new Notification.Builder(mContext)
-                .setContentTitle(mNotificationProps.getTitle())
-                .setContentText(mNotificationProps.getBody())
-                .setContentIntent(intent)
-                .setDefaults(Notification.DEFAULT_ALL)
-                .setAutoCancel(true);
+		    .setContentTitle(mNotificationProps.getTitle())
+		    .setContentText(mNotificationProps.getBody())
+		    .setContentIntent(intent)
+		    .setDefaults(Notification.DEFAULT_ALL)
+		    .setAutoCancel(true);
 
+	    final String packageName = mContext.getPackageName();
+	    int resourceID = 0;
 
-             int resourceID = mContext.getResources().getIdentifier("notification_icon", "drawable", mContext.getPackageName());
-                if (resourceID != 0) {
-                    notification.setSmallIcon(resourceID);
-                } else {
-                    notification.setSmallIcon(mContext.getApplicationInfo().icon);
-                }
+    	try {
+	    	final ApplicationInfo appInfo = mContext.getPackageManager().getApplicationInfo(packageName, PackageManager.GET_META_DATA);
+		    Bundle bundle = appInfo.metaData;
+		    resourceID = bundle.getInt("com.google.firebase.messaging.default_notification_icon");
+	    } catch (final Exception e) {
+	    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_DEFAULT);
-            final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.createNotificationChannel(channel);
-            notification.setChannelId(CHANNEL_ID);
-        }
-
+	    if (resourceID != 0) {
+		    notification.setSmallIcon(resourceID);
+	    } else {
+		    notification.setSmallIcon(mContext.getApplicationInfo().icon);
+	    }
+        
         return notification;
     }
 
