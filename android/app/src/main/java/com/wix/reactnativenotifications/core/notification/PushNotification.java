@@ -146,6 +146,8 @@ public class PushNotification implements IPushNotification {
     }
 
     protected Notification.Builder getNotificationBuilder(PendingIntent intent) {
+	String CHANNEL_ID = "requests";
+	    
         final Notification.Builder notification = new Notification.Builder(mContext)
 		    .setContentTitle(mNotificationProps.getTitle())
 		    .setContentText(mNotificationProps.getBody())
@@ -153,21 +155,42 @@ public class PushNotification implements IPushNotification {
 		    .setDefaults(Notification.DEFAULT_ALL)
 		    .setAutoCancel(true);
 
-	    final String packageName = mContext.getPackageName();
-	    int resourceID = 0;
+	final String packageName = mContext.getPackageName();
+	int resourceID = 0;
+	    
+	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+	    try {
+		ApplicationInfo appInfo = mContext.getPackageManager().getApplicationInfo(packageName, PackageManager.GET_META_DATA);
+		Bundle bundle = appInfo.metaData;
 
-    	try {
-	    	final ApplicationInfo appInfo = mContext.getPackageManager().getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-		    Bundle bundle = appInfo.metaData;
-		    resourceID = bundle.getInt("com.google.firebase.messaging.default_notification_icon");
+		String id = bundle.getString("channel_id");
+		String name = bundle.getString("channel_name");
+		String desc = bundle.getString("channel_desc");
+
+		NotificationChannel channel = new NotificationChannel(id,
+			name,
+			NotificationManager.IMPORTANCE_DEFAULT);
+		channel.setDescription(desc);
+		final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.createNotificationChannel(channel);
+		notification.setChannelId(id);
 	    } catch (final Exception e) {
 	    }
+	}
 
-	    if (resourceID != 0) {
-		    notification.setSmallIcon(resourceID);
-	    } else {
-		    notification.setSmallIcon(mContext.getApplicationInfo().icon);
-	    }
+    	try {
+	    final ApplicationInfo appInfo = mContext.getPackageManager().getApplicationInfo(packageName, PackageManager.GET_META_DATA);
+	    Bundle bundle = appInfo.metaData;
+		
+	    resourceID = bundle.getInt("com.google.firebase.messaging.default_notification_icon");
+	} catch (final Exception e) {
+	}
+
+	if (resourceID != 0) {
+	    notification.setSmallIcon(resourceID);
+	} else {
+	    notification.setSmallIcon(mContext.getApplicationInfo().icon);
+	}
         
         return notification;
     }
